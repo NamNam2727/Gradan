@@ -86,19 +86,19 @@ class Projectile {
 }
 
 const GameData = {
-    // ★画像のURLを jsDelivr から GitHub Pages のものに変更します
     images: {
-        player: 'https://NamNam2727.github.io/Gradan/Grachan.png',
-        enemy: 'https://NamNam2727.github.io/Gradan/Grime.png',
-        reaper: 'https://NamNam2727.github.io/Gradan/Reaper.png',
-        jumboGrime: 'https://NamNam2727.github.io/Gradan/Grime.png',
-        grabot: 'https://NamNam2727.github.io/Gradan/Grabat.png',
-        graspider: 'https://NamNam2727.github.io/Gradan/Graspider.png',
-        stairs: 'https://NamNam2727.github.io/Gradan/Stairs.png',
-        hpPotion: 'https://NamNam2727.github.io/Gradan/HPP.png',
-        spPotion: 'https://NamNam2727.github.io/Gradan/SPP.png',
-        coin: 'https://NamNam2727.github.io/Gradan/coin.png'
+        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grachan.png?raw=true',
+        enemy: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png?raw=true',
+        reaper: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png?raw=true',
+        jumboGrime: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png?raw=true',
+        grabot: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grabat.png?raw=true',
+        graspider: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Graspider.png?raw=true',
+        stairs: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Stairs.png?raw=true',
+        hpPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/HPP.png?raw=true',
+        spPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/SPP.png?raw=true',
+        coin: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/coin.png?raw=true'
     },
+
     getFloorData: function(floorNum) {
         if (floorNum === 10) return this.floors.boss10;
         if (floorNum === 20) return this.floors.boss20;
