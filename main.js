@@ -25,21 +25,18 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); if(window.gameState === 'playing') render(); });
 
-// --- 画像の読み込み処理 ---
-const imgPlayer = new Image(); imgPlayer.crossOrigin = "Anonymous"; imgPlayer.src = window.GameData.images.player;
+// --- 画像の読み込み処理（WebViewのブロックを回避するため crossOrigin の設定を削除） ---
+const imgPlayer = new Image(); imgPlayer.src = window.GameData.images.player;
 imgPlayer.onload = () => { document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`; };
 
-const imgEnemy = new Image(); imgEnemy.crossOrigin = "Anonymous"; imgEnemy.src = window.GameData.images.enemy;
-const imgReaper = new Image(); imgReaper.crossOrigin = "Anonymous"; imgReaper.src = window.GameData.images.reaper;
-const imgJumboGrime = new Image(); imgJumboGrime.crossOrigin = "Anonymous"; imgJumboGrime.src = window.GameData.images.jumboGrime;
-const imgGrabot = new Image(); imgGrabot.crossOrigin = "Anonymous"; imgGrabot.src = window.GameData.images.grabot;
-const imgGraspider = new Image(); imgGraspider.crossOrigin = "Anonymous"; imgGraspider.src = window.GameData.images.graspider;
+const imgEnemy = new Image(); imgEnemy.src = window.GameData.images.enemy;
+const imgReaper = new Image(); imgReaper.src = window.GameData.images.reaper;
+const imgJumboGrime = new Image(); imgJumboGrime.src = window.GameData.images.jumboGrime;
+const imgGrabot = new Image(); imgGrabot.src = window.GameData.images.grabot;
+const imgGraspider = new Image(); imgGraspider.src = window.GameData.images.graspider;
 
 let imgStairs = new Image(); let imgHpPotion = new Image(); let imgSpPotion = new Image(); let imgStar = new Image();
-imgStairs.crossOrigin = "Anonymous"; imgStairs.src = window.GameData.images.stairs;
-imgHpPotion.crossOrigin = "Anonymous"; imgHpPotion.src = window.GameData.images.hpPotion;
-imgSpPotion.crossOrigin = "Anonymous"; imgSpPotion.src = window.GameData.images.spPotion;
-imgStar.crossOrigin = "Anonymous"; imgStar.src = window.GameData.images.coin;
+imgStar.src = window.GameData.images.coin;
 
 imgStar.onload = () => {
     const uiIcon = document.getElementById('ui-star-icon');
@@ -59,6 +56,9 @@ function getPreloadedImage(key) {
 }
 
 function processTransparentImage(src, targetImg) {
+    // 【絶対安全装置】先に元の画像をセットしておく。万が一透明化がブロックされても画像は確実に表示される。
+    targetImg.src = src;
+
     let img = new Image(); img.crossOrigin = "Anonymous";
     img.onload = () => {
         try {
@@ -75,13 +75,16 @@ function processTransparentImage(src, targetImg) {
             cCtx.putImageData(imgData, 0, 0); targetImg.src = cvs.toDataURL(); 
             if (window.gameState === 'playing' && document.getElementById('tab-item').style.display === 'grid') window.renderInventory();
         } catch(e) {
-            console.warn("画像透過処理でエラー(CORS等の影響):", e);
+            console.warn("画像透過処理ブロック(元画像で継続します):", e);
         }
-    }; img.src = src;
+    }; 
+    // キャッシュによるCORSエラーを防ぐためのパラメータを追加
+    img.src = src + '?_t=' + Date.now();
 }
-processTransparentImage(imgStairs.src, imgStairs); 
-processTransparentImage(imgHpPotion.src, imgHpPotion); 
-processTransparentImage(imgSpPotion.src, imgSpPotion);
+// ここで各画像のパスを渡して処理を実行
+processTransparentImage(window.GameData.images.stairs, imgStairs); 
+processTransparentImage(window.GameData.images.hpPotion, imgHpPotion); 
+processTransparentImage(window.GameData.images.spPotion, imgSpPotion);
 
 // --- UI・ボタン関連 ---
 document.getElementById('btn-sound').onclick = (e) => {
@@ -270,13 +273,10 @@ window.broadcast = broadcast;
 // === ボタンイベント ===
 document.getElementById('btn-start').onclick = () => { 
     try {
-        // 先に画面を確実に切り替える
         document.getElementById('title-screen').style.display = 'none'; 
         document.getElementById('mode-screen').style.display = 'flex'; 
         
-        // 音楽エンジンがブロックされていてもフリーズしないように安全に処理
         if (window.AudioEngine) {
-            // audioCtx が存在するか、関数が存在するかを厳密にチェック
             if (window.AudioEngine.audioCtx && typeof window.AudioEngine.audioCtx.resume === 'function') {
                 if (window.AudioEngine.audioCtx.state === 'suspended') {
                     window.AudioEngine.audioCtx.resume().catch(e => console.warn("Audio resume error:", e));
@@ -288,7 +288,6 @@ document.getElementById('btn-start').onclick = () => {
         }
     } catch(e) {
         console.error("STARTボタン処理エラー:", e);
-        // 万が一エラーが起きても強制的に次へ進める
         document.getElementById('title-screen').style.display = 'none'; 
         document.getElementById('mode-screen').style.display = 'flex'; 
     }
@@ -753,7 +752,7 @@ canvas.addEventListener('pointerup', (e) => {
             let targetX = tapEnt.x, targetY = tapEnt.y;
             if (tapEnt.type === 'boss' || tapEnt.type === 'jumbo_boss') { let minDist = Infinity; for (let by = targetY - 1; by <= targetY + 1; by++) for (let bx = targetX - 1; bx <= targetX + 1; bx++) { let d = Math.hypot(bx - window.game.player.x, by - window.game.player.y); if (d < minDist) { minDist = d; targetX = bx; targetY = by; } } }
             let p = window.getPath(window.game.player.x, window.game.player.y, targetX, targetY);
-            if(!p || p.length===0) { if(typeof window.logMsg==='function') window.logMsg("対象に近づけません！発発動失敗。"); cancelActionMode(); } else { window.game.player.autoTarget = tapEnt; window.game.player.path = p; window.game.player.queuedSkill = window.game.skillMode; cancelActionMode(); }
+            if(!p || p.length===0) { if(typeof window.logMsg==='function') window.logMsg("対象に近づけません！発動失敗。"); cancelActionMode(); } else { window.game.player.autoTarget = tapEnt; window.game.player.path = p; window.game.player.queuedSkill = window.game.skillMode; cancelActionMode(); }
         }
         dragStartPos = null; return;
     }
@@ -1222,3 +1221,8 @@ if (typeof window.initDebugTools === 'function') {
 
 // ループ開始
 requestAnimationFrame(gameLoop);
+```eof
+
+※GRAVITY側へ渡す `index.html` については、キャッシュ（古い記憶）を強制的に消して新しい `main.js` を読み込ませるために、最後の方にある以下の行の数字を **`?v=1` から `?v=2`** に変えてからテストURLを発行してみてください！
+
+`<script src="[https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/main.js?v=2](https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/main.js?v=2)" onload="onScriptLoad()" onerror="onScriptError('main.js')"></script>`
