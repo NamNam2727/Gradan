@@ -88,7 +88,7 @@ class Projectile {
 const GameData = {
     // ★jsDelivrのURLを使用（これが許可証CORSに対応している最強のURLです）
     images: {
-        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grachan.png',
+        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png',
         enemy: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
         reaper: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png',
         jumboGrime: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
