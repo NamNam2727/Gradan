@@ -19,33 +19,6 @@
             errDiv.innerHTML += 'エラー: ' + msg + '<br>[' + fileName + ' : ' + lineno + '行目]<br><hr>';
             return false;
         };
-
-        // ファイルの読み込み状況を監視するシステム
-        window.loadedScripts = 0;
-        window.totalScripts = 7; // 読み込むJSファイルの合計数
-        
-        function onScriptLoad() {
-            window.loadedScripts++;
-            if(window.loadedScripts >= window.totalScripts) {
-                var btn = document.getElementById('btn-start');
-                if(btn) {
-                    btn.disabled = false;
-                    btn.innerText = 'START';
-                    btn.style.background = '#a8d578';
-                }
-            }
-        }
-        
-        function onScriptError(scriptName) {
-            var errDiv = document.getElementById('debug-error-log');
-            if (!errDiv) {
-                errDiv = document.createElement('div');
-                errDiv.id = 'debug-error-log';
-                errDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:rgba(255,0,0,0.9); color:white; z-index:9999; padding:10px; font-size:12px; pointer-events:auto; word-break:break-all; font-weight:bold;';
-                document.body.appendChild(errDiv);
-            }
-            errDiv.innerHTML += '【重大エラー】通信がブロックされました<br>「' + scriptName + '」の読み込みに失敗しました。<br>GRAVITYのセキュリティによりサーバーとの通信が遮断されています。<br><hr>';
-        }
     </script>
     <style>
         :root {
@@ -65,9 +38,7 @@
         
         #title-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 200; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #title-screen h1 { color: #fff; font-size: 28px; margin-bottom: 40px; text-shadow: 2px 2px 0 #555; text-align: center; }
-        
-        /* ボタンの初期状態をグレーにして無効化しておく */
-        #title-screen button { padding: 15px 40px; font-size: 20px; font-weight: bold; background: #555; border: 2px solid #fff; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #333; color: #111; }
+        #title-screen button { padding: 15px 40px; font-size: 20px; font-weight: bold; background: #a8d578; border: 2px solid #fff; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #79553d; color: #111; }
 
         #mode-screen, #room-list-screen, #lobby-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .menu-btn { padding: 15px 30px; font-size: 18px; margin: 10px; font-weight: bold; background: #a8d578; border: 2px solid #fff; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #79553d; color: #111; }
@@ -130,7 +101,7 @@
         
         <div id="title-screen">
             <h1>GRAVITYと<br>不思議なダンジョン</h1>
-            <button id="btn-start" disabled>システム読込中...</button>
+            <button id="btn-start">START</button>
         </div>
 
         <div id="mode-screen">
@@ -267,17 +238,19 @@
         </div>
     </div>
 
-    <!-- ファイルの読み込み成功・失敗を判定する処理を追加しています -->
-    <script src="https://nam27.uunyan.com/Gradan/core_data.js?v=4" onload="onScriptLoad()" onerror="onScriptError('core_data.js')"></script>
-    <script src="https://nam27.uunyan.com/Gradan/core_logic.js?v=4" onload="onScriptLoad()" onerror="onScriptError('core_logic.js')"></script>
+    <!-- ★すべて GitHub(jsDelivr) のURLに変更しました -->
+    <!-- ※キャッシュ対策のため ?v=1 を付与しています。JSを更新した際はここを ?v=2 などに変更してください -->
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/core_data.js?v=1"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/core_logic.js?v=1"></script>
     
-    <script src="https://nam27.uunyan.com/Gradan/bgm/audio_engine.js?v=4" onload="onScriptLoad()" onerror="onScriptError('audio_engine.js')"></script>
-    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_title.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_title.js')"></script>
-    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_dungeon.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_dungeon.js')"></script>
-    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_mansion.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_mansion.js')"></script>
-    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_boss.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_boss.js')"></script>
+    <!-- もしBGMのJSファイルを bgm フォルダに入れてアップロードした場合は、 /Gradan/bgm/audio_engine.js のように直してください -->
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/audio_engine.js?v=1"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/bgm_title.js?v=1"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/bgm_dungeon.js?v=1"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/bgm_mansion.js?v=1"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/bgm_boss.js?v=1"></script>
 
-    <script src="https://nam27.uunyan.com/Gradan/main.js?v=4" onload="onScriptLoad()" onerror="onScriptError('main.js')"></script>
+    <script src="https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/main.js?v=1"></script>
 
 </body>
 </html>

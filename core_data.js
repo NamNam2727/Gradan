@@ -86,17 +86,18 @@ class Projectile {
 }
 
 const GameData = {
+    // ★GitHub(jsDelivr)のURLに全て変更しました
     images: {
-        player: 'https://nam27.uunyan.com/Gradan/pic/Grachan.png',
-        enemy: 'https://nam27.uunyan.com/Gradan/pic/Grime.png',
-        reaper: 'https://nam27.uunyan.com/Gradan/pic/Reaper.png',
-        jumboGrime: 'https://nam27.uunyan.com/Gradan/pic/Grime.png',
-        grabot: 'https://nam27.uunyan.com/Gradan/pic/Grabat.png',
-        graspider: 'https://nam27.uunyan.com/Gradan/pic/Graspider.png',
-        stairs: 'https://nam27.uunyan.com/Gradan/pic/Stairs.png',
-        hpPotion: 'https://nam27.uunyan.com/Gradan/pic/HPP.png',
-        spPotion: 'https://nam27.uunyan.com/Gradan/pic/SPP.png',
-        coin: 'https://nam27.uunyan.com/Gradan/pic/coin.png'
+        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grachan.png',
+        enemy: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
+        reaper: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png',
+        jumboGrime: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
+        grabot: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grabat.png',
+        graspider: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Graspider.png',
+        stairs: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Stairs.png',
+        hpPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/HPP.png',
+        spPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/SPP.png',
+        coin: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/coin.png'
     },
     getFloorData: function(floorNum) {
         if (floorNum === 10) return this.floors.boss10;
@@ -107,7 +108,6 @@ const GameData = {
     },
     floors: {
         dungeon: { id: 'dungeon', isBossFloor: false, wallColor: '#79553d', floorColor: '#a8d578', floorStroke: '#68b558', bgmType: 'dungeon', enemyPool: ['grime'], itemPool: ['hp_potion', 'sp_potion', 'sword', 'shield', 'ring', 'star'] },
-        // ★修正箇所：boss10の色をdungeon（1〜9階）と同じ色に修正しました
         boss10: { id: 'boss10', isBossFloor: true, bossType: 'jumbo_boss', wallColor: '#79553d', floorColor: '#a8d578', floorStroke: '#68b558', bgmType: 'boss' },
         mansion: { id: 'mansion', isBossFloor: false, wallColor: '#000080', floorColor: '#d3d3d3', floorStroke: '#a9a9a9', bgmType: 'mansion', enemyPool: ['grabot', 'graspider'], itemPool: ['hp_potion', 'sp_potion', 'sword', 'shield', 'ring', 'star'] },
         boss20: { id: 'boss20', isBossFloor: true, bossType: 'boss', wallColor: '#000080', floorColor: '#d3d3d3', floorStroke: '#a9a9a9', bgmType: 'boss' }
