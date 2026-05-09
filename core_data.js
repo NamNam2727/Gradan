@@ -86,19 +86,19 @@ class Projectile {
 }
 
 const GameData = {
+    // ★jsDelivrのURLを使用（これが許可証CORSに対応している最強のURLです）
     images: {
-        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grachan.png?raw=true',
-        enemy: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png?raw=true',
-        reaper: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png?raw=true',
-        jumboGrime: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png?raw=true',
-        grabot: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grabat.png?raw=true',
-        graspider: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Graspider.png?raw=true',
-        stairs: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Stairs.png?raw=true',
-        hpPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/HPP.png?raw=true',
-        spPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/SPP.png?raw=true',
-        coin: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/coin.png?raw=true'
+        player: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grachan.png',
+        enemy: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
+        reaper: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Reaper.png',
+        jumboGrime: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grime.png',
+        grabot: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Grabat.png',
+        graspider: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Graspider.png',
+        stairs: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/Stairs.png',
+        hpPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/HPP.png',
+        spPotion: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/SPP.png',
+        coin: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/coin.png'
     },
-
     getFloorData: function(floorNum) {
         if (floorNum === 10) return this.floors.boss10;
         if (floorNum === 20) return this.floors.boss20;
@@ -128,19 +128,4 @@ const ItemData = {
     book_default: { type: 'book_default', name: 'グラドールの本(白紙)', equipType: null, effectText: '効果: なし (投げることは可能)', flavorText: '古い本だ。表紙の文字は擦り切れて読めない。', iconType: 'emoji', iconString: '📖', showAction1: false }
 };
 
-// 【重要】各データを外部から呼び出せるように公開（エクスポート）する処理
-window.TILE_SIZE = TILE_SIZE;
-window.VIEW_COLS = VIEW_COLS;
-window.VIEW_W = VIEW_W;
-window.VIEW_H = VIEW_H;
-window.MOVE_DURATION = MOVE_DURATION;
-window.nextEntId = nextEntId;
-window.game = game;
-window.gameState = gameState;
-window.getDistance = getDistance;
-window.calculateDamage = calculateDamage;
-window.getPath = getPath;
-window.logMsg = logMsg;
-window.Projectile = Projectile;
-window.GameData = GameData;
-window.ItemData = ItemData;
+window.TILE_SIZE = TILE_SIZE; window.VIEW_COLS = VIEW_COLS; window.VIEW_W = VIEW_W; window.VIEW_H = VIEW_H; window.MOVE_DURATION = MOVE_DURATION; window.nextEntId = nextEntId; window.game = game; window.gameState = gameState; window.getDistance = getDistance; window.calculateDamage = calculateDamage; window.getPath = getPath; window.logMsg = logMsg; window.Projectile = Projectile; window.GameData = GameData; window.ItemData = ItemData;

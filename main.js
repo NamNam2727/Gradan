@@ -25,18 +25,20 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); if(window.gameState === 'playing') render(); });
 
-// --- 画像の読み込み処理（WebViewのブロックを回避するため crossOrigin の設定を削除） ---
-const imgPlayer = new Image(); imgPlayer.src = window.GameData.images.player;
+// --- 画像の読み込み処理（★許可証チェック `crossOrigin` をすべて復活！） ---
+const imgPlayer = new Image(); imgPlayer.crossOrigin = "Anonymous"; imgPlayer.src = window.GameData.images.player;
 imgPlayer.onload = () => { document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`; };
 
-const imgEnemy = new Image(); imgEnemy.src = window.GameData.images.enemy;
-const imgReaper = new Image(); imgReaper.src = window.GameData.images.reaper;
-const imgJumboGrime = new Image(); imgJumboGrime.src = window.GameData.images.jumboGrime;
-const imgGrabot = new Image(); imgGrabot.src = window.GameData.images.grabot;
-const imgGraspider = new Image(); imgGraspider.src = window.GameData.images.graspider;
+const imgEnemy = new Image(); imgEnemy.crossOrigin = "Anonymous"; imgEnemy.src = window.GameData.images.enemy;
+const imgReaper = new Image(); imgReaper.crossOrigin = "Anonymous"; imgReaper.src = window.GameData.images.reaper;
+const imgJumboGrime = new Image(); imgJumboGrime.crossOrigin = "Anonymous"; imgJumboGrime.src = window.GameData.images.jumboGrime;
+const imgGrabot = new Image(); imgGrabot.crossOrigin = "Anonymous"; imgGrabot.src = window.GameData.images.grabot;
+const imgGraspider = new Image(); imgGraspider.crossOrigin = "Anonymous"; imgGraspider.src = window.GameData.images.graspider;
 
-let imgStairs = new Image(); let imgHpPotion = new Image(); let imgSpPotion = new Image(); let imgStar = new Image();
-imgStar.src = window.GameData.images.coin;
+let imgStairs = new Image(); imgStairs.crossOrigin = "Anonymous"; 
+let imgHpPotion = new Image(); imgHpPotion.crossOrigin = "Anonymous"; 
+let imgSpPotion = new Image(); imgSpPotion.crossOrigin = "Anonymous"; 
+let imgStar = new Image(); imgStar.crossOrigin = "Anonymous"; imgStar.src = window.GameData.images.coin;
 
 imgStar.onload = () => {
     const uiIcon = document.getElementById('ui-star-icon');
@@ -56,10 +58,8 @@ function getPreloadedImage(key) {
 }
 
 function processTransparentImage(src, targetImg) {
-    // 【絶対安全装置】先に元の画像をセットしておく。万が一透明化がブロックされても画像は確実に表示される。
-    targetImg.src = src;
-
-    let img = new Image(); img.crossOrigin = "Anonymous";
+    let img = new Image(); 
+    img.crossOrigin = "Anonymous";
     img.onload = () => {
         try {
             let cvs = document.createElement('canvas'); cvs.width = img.width; cvs.height = img.height; 
@@ -75,13 +75,14 @@ function processTransparentImage(src, targetImg) {
             cCtx.putImageData(imgData, 0, 0); targetImg.src = cvs.toDataURL(); 
             if (window.gameState === 'playing' && document.getElementById('tab-item').style.display === 'grid') window.renderInventory();
         } catch(e) {
-            console.warn("画像透過処理ブロック(元画像で継続します):", e);
+            console.warn("画像透過処理エラー:", e);
+            targetImg.src = src; 
         }
     }; 
-    // キャッシュによるCORSエラーを防ぐためのパラメータを追加
-    img.src = src + '?_t=' + Date.now();
+    img.onerror = () => { targetImg.src = src; };
+    img.src = src;
 }
-// ここで各画像のパスを渡して処理を実行
+
 processTransparentImage(window.GameData.images.stairs, imgStairs); 
 processTransparentImage(window.GameData.images.hpPotion, imgHpPotion); 
 processTransparentImage(window.GameData.images.spPotion, imgSpPotion);
@@ -859,6 +860,12 @@ function render() {
             const screenX = x - camX;
             const screenY = y - camY;
 
+            if (!window.game.debugMode && !window.game.discoveredMap[y][x]) {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(Math.floor(screenX * window.TILE_SIZE), Math.floor(screenY * window.TILE_SIZE), window.TILE_SIZE+1, window.TILE_SIZE+1);
+                continue;
+            }
+
             const tile = window.game.map[y][x];
             
             if (tile === 1) { 
@@ -881,6 +888,12 @@ function render() {
                 ctx.strokeStyle = floorStroke; 
                 ctx.strokeRect(Math.floor(screenX * window.TILE_SIZE), Math.floor(screenY * window.TILE_SIZE), window.TILE_SIZE, window.TILE_SIZE); 
             }
+
+            const isVis = Math.abs(px - x) <= window.VIEW_W/2 && Math.abs(py - y) <= window.VIEW_H/2;
+            if (!isVis && !window.game.debugMode) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(Math.floor(screenX * window.TILE_SIZE), Math.floor(screenY * window.TILE_SIZE), window.TILE_SIZE+1, window.TILE_SIZE+1);
+            }
         }
     }
 
@@ -897,6 +910,9 @@ function render() {
     ctx.font = `${window.TILE_SIZE*0.6}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let item of window.game.items) {
         if (item.x >= startX && item.x < endX && item.y >= startY && item.y < endY) {
+            const isVis = Math.abs(px - item.x) <= window.VIEW_W/2 && Math.abs(py - item.y) <= window.VIEW_H/2;
+            if (!isVis && !window.game.debugMode && !window.game.discoveredMap[item.y][item.x]) continue;
+
             const sx = Math.floor((item.x - camX) * window.TILE_SIZE + window.TILE_SIZE/2);
             const sy = Math.floor((item.y - camY) * window.TILE_SIZE + window.TILE_SIZE/2);
             if (item.type === 'star') { 
@@ -923,6 +939,9 @@ function render() {
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
     for(let e of window.game.entities) {
+        const isVis = Math.abs(px - e.x) <= window.VIEW_W/2 && Math.abs(py - e.y) <= window.VIEW_H/2;
+        if (!isVis && !window.game.debugMode && e.type !== 'player') continue;
+
         if(e.state === 'PREP' || e.state === 'ATTACK') {
             if(e.type === 'boss') {
                 if(e.skillIdx === 0 && e.skillTargets) {
@@ -983,7 +1002,10 @@ function render() {
         }
     }
 
-    let renderEnts = window.game.entities.slice().sort((a,b) => a.y - b.y);
+    let renderEnts = window.game.entities.filter(e => {
+        const isVis = Math.abs(px - e.x) <= window.VIEW_W/2 && Math.abs(py - e.y) <= window.VIEW_H/2;
+        return isVis || window.game.debugMode || e.type === 'player';
+    }).sort((a,b) => a.y - b.y);
 
     for (let e of renderEnts) {
         const pos = e.getRenderPos();
@@ -1221,8 +1243,3 @@ if (typeof window.initDebugTools === 'function') {
 
 // ループ開始
 requestAnimationFrame(gameLoop);
-```eof
-
-※GRAVITY側へ渡す `index.html` については、キャッシュ（古い記憶）を強制的に消して新しい `main.js` を読み込ませるために、最後の方にある以下の行の数字を **`?v=1` から `?v=2`** に変えてからテストURLを発行してみてください！
-
-`<script src="[https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/main.js?v=2](https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/main.js?v=2)" onload="onScriptLoad()" onerror="onScriptError('main.js')"></script>`
