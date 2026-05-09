@@ -25,22 +25,45 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); if(window.gameState === 'playing') render(); });
 
-// --- 画像の読み込み処理（★許可証チェック `crossOrigin` をすべて復活！） ---
-const imgPlayer = new Image(); imgPlayer.crossOrigin = "Anonymous"; imgPlayer.src = window.GameData.images.player;
-imgPlayer.onload = () => { document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`; };
+// ==========================================
+// ★裏技：画像を安全なデータ(Blob)に変換して読み込むシステム
+// ==========================================
+async function loadSafeImage(url, targetImg, callback) {
+    try {
+        // 画像を通信で取得し、Blob（安全な塊）に変換する
+        let response = await fetch(url + '?_t=' + Date.now(), { mode: 'cors' });
+        if (!response.ok) throw new Error("通信エラー");
+        let blob = await response.blob();
+        let safeUrl = URL.createObjectURL(blob); // 内部専用のURLを発行
+        
+        targetImg.onload = () => { if(callback) callback(); };
+        targetImg.src = safeUrl; // 安全なURLを画像にセット
+    } catch(e) {
+        console.warn("安全な画像読み込みに失敗:", url, e);
+        // 万が一失敗した場合は、そのままのURLをセットして表示を試みる
+        targetImg.onload = () => { if(callback) callback(); };
+        targetImg.src = url;
+    }
+}
 
-const imgEnemy = new Image(); imgEnemy.crossOrigin = "Anonymous"; imgEnemy.src = window.GameData.images.enemy;
-const imgReaper = new Image(); imgReaper.crossOrigin = "Anonymous"; imgReaper.src = window.GameData.images.reaper;
-const imgJumboGrime = new Image(); imgJumboGrime.crossOrigin = "Anonymous"; imgJumboGrime.src = window.GameData.images.jumboGrime;
-const imgGrabot = new Image(); imgGrabot.crossOrigin = "Anonymous"; imgGrabot.src = window.GameData.images.grabot;
-const imgGraspider = new Image(); imgGraspider.crossOrigin = "Anonymous"; imgGraspider.src = window.GameData.images.graspider;
+// 各画像の準備
+const imgPlayer = new Image(); 
+loadSafeImage(window.GameData.images.player, imgPlayer, () => {
+    document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`;
+});
 
-let imgStairs = new Image(); imgStairs.crossOrigin = "Anonymous"; 
-let imgHpPotion = new Image(); imgHpPotion.crossOrigin = "Anonymous"; 
-let imgSpPotion = new Image(); imgSpPotion.crossOrigin = "Anonymous"; 
-let imgStar = new Image(); imgStar.crossOrigin = "Anonymous"; imgStar.src = window.GameData.images.coin;
+const imgEnemy = new Image(); loadSafeImage(window.GameData.images.enemy, imgEnemy);
+const imgReaper = new Image(); loadSafeImage(window.GameData.images.reaper, imgReaper);
+const imgJumboGrime = new Image(); loadSafeImage(window.GameData.images.jumboGrime, imgJumboGrime);
+const imgGrabot = new Image(); loadSafeImage(window.GameData.images.grabot, imgGrabot);
+const imgGraspider = new Image(); loadSafeImage(window.GameData.images.graspider, imgGraspider);
 
-imgStar.onload = () => {
+let imgStairs = new Image(); 
+let imgHpPotion = new Image(); 
+let imgSpPotion = new Image(); 
+let imgStar = new Image();
+
+loadSafeImage(window.GameData.images.coin, imgStar, () => {
     const uiIcon = document.getElementById('ui-star-icon');
     if(uiIcon) {
         uiIcon.src = imgStar.src;
@@ -48,7 +71,7 @@ imgStar.onload = () => {
         const uiText = document.getElementById('ui-star-icon-text');
         if(uiText) uiText.style.display = 'none';
     }
-};
+});
 
 function getPreloadedImage(key) {
     if (key === 'hpPotion') return imgHpPotion;
@@ -57,13 +80,12 @@ function getPreloadedImage(key) {
     return null;
 }
 
-function processTransparentImage(src, targetImg) {
-    let img = new Image(); 
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
+// 透過処理も安全なデータからならブロックされません
+function processTransparentImageSafe(url, targetImg) {
+    loadSafeImage(url, targetImg, () => {
         try {
-            let cvs = document.createElement('canvas'); cvs.width = img.width; cvs.height = img.height; 
-            let cCtx = cvs.getContext('2d'); cCtx.drawImage(img, 0, 0);
+            let cvs = document.createElement('canvas'); cvs.width = targetImg.width; cvs.height = targetImg.height; 
+            let cCtx = cvs.getContext('2d'); cCtx.drawImage(targetImg, 0, 0);
             let imgData = cCtx.getImageData(0, 0, cvs.width, cvs.height); let data = imgData.data; let stack = [];
             for(let x=0; x<cvs.width; x++) { stack.push(x, 0); stack.push(x, cvs.height-1); }
             for(let y=0; y<cvs.height; y++) { stack.push(0, y); stack.push(cvs.width-1, y); }
@@ -75,17 +97,17 @@ function processTransparentImage(src, targetImg) {
             cCtx.putImageData(imgData, 0, 0); targetImg.src = cvs.toDataURL(); 
             if (window.gameState === 'playing' && document.getElementById('tab-item').style.display === 'grid') window.renderInventory();
         } catch(e) {
-            console.warn("画像透過処理エラー:", e);
-            targetImg.src = src; 
+            console.warn("透明化処理エラー(そのまま表示します):", e);
         }
-    }; 
-    img.onerror = () => { targetImg.src = src; };
-    img.src = src;
+    });
 }
 
-processTransparentImage(window.GameData.images.stairs, imgStairs); 
-processTransparentImage(window.GameData.images.hpPotion, imgHpPotion); 
-processTransparentImage(window.GameData.images.spPotion, imgSpPotion);
+// 背景が白い画像の透過処理を実行
+processTransparentImageSafe(window.GameData.images.stairs, imgStairs); 
+processTransparentImageSafe(window.GameData.images.hpPotion, imgHpPotion); 
+processTransparentImageSafe(window.GameData.images.spPotion, imgSpPotion);
+// ==========================================
+
 
 // --- UI・ボタン関連 ---
 document.getElementById('btn-sound').onclick = (e) => {
@@ -916,7 +938,7 @@ function render() {
             const sx = Math.floor((item.x - camX) * window.TILE_SIZE + window.TILE_SIZE/2);
             const sy = Math.floor((item.y - camY) * window.TILE_SIZE + window.TILE_SIZE/2);
             if (item.type === 'star') { 
-                if(imgStar.complete && imgStar.src && imgStar.src.startsWith('http')) {
+                if(imgStar.complete && imgStar.src && imgStar.src.startsWith('blob:')) {
                     ctx.drawImage(imgStar, sx-window.TILE_SIZE*0.4, sy-window.TILE_SIZE*0.4, window.TILE_SIZE*0.8, window.TILE_SIZE*0.8);
                 } else {
                     ctx.fillStyle = '#ffff55'; ctx.beginPath(); ctx.arc(sx, sy, (window.TILE_SIZE*0.25) + Math.min(window.TILE_SIZE*0.1, item.amount), 0, Math.PI*2); ctx.fill(); 
