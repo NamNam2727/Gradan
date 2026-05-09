@@ -26,52 +26,52 @@ resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); if(window.gameState === 'playing') render(); });
 
 // ==========================================
-// ★裏技：画像を安全なデータ(Blob)に変換して読み込むシステム
+// ★究極の裏技：画像ごとに分割したJSファイルを動的に読み込むシステム
 // ==========================================
-async function loadSafeImage(url, targetImg, callback) {
-    try {
-        // 画像を通信で取得し、Blob（安全な塊）に変換する
-        let response = await fetch(url + '?_t=' + Date.now(), { mode: 'cors' });
-        if (!response.ok) throw new Error("通信エラー");
-        let blob = await response.blob();
-        let safeUrl = URL.createObjectURL(blob); // 内部専用のURLを発行
-        
-        targetImg.onload = () => { if(callback) callback(); };
-        targetImg.src = safeUrl; // 安全なURLを画像にセット
-    } catch(e) {
-        console.warn("安全な画像読み込みに失敗:", url, e);
-        // 万が一失敗した場合は、そのままのURLをセットして表示を試みる
-        targetImg.onload = () => { if(callback) callback(); };
-        targetImg.src = url;
-    }
+const imageScriptList = [
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_player.js', varName: 'B64_PLAYER', key: 'player' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_enemy.js', varName: 'B64_ENEMY', key: 'enemy' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_reaper.js', varName: 'B64_REAPER', key: 'reaper' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_jumbo.js', varName: 'B64_JUMBO', key: 'jumboGrime' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_grabot.js', varName: 'B64_GRABOT', key: 'grabot' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_graspider.js', varName: 'B64_GRASPIDER', key: 'graspider' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_stairs.js', varName: 'B64_STAIRS', key: 'stairs' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_hppotion.js', varName: 'B64_HPPOTION', key: 'hpPotion' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_sppotion.js', varName: 'B64_SPPOTION', key: 'spPotion' },
+    { url: 'https://cdn.jsdelivr.net/gh/NamNam2727/Gradan/img_coin.js', varName: 'B64_COIN', key: 'coin' }
+];
+
+function loadBase64ImageScript(item) {
+    return new Promise((resolve) => {
+        let script = document.createElement('script');
+        script.src = item.url + '?_t=' + Date.now(); // キャッシュ回避
+        script.onload = () => {
+            if (window[item.varName]) {
+                window.GameData.images[item.key] = window[item.varName]; // 読み込んだBASE64をセット
+            }
+            resolve();
+        };
+        script.onerror = () => {
+            console.warn(item.url + " の読み込みに失敗しました（ファイルがない可能性があります）");
+            resolve();
+        };
+        document.head.appendChild(script);
+    });
 }
 
-// 各画像の準備
+// ---------------------------
+// 画像変数の初期化
+// ---------------------------
 const imgPlayer = new Image(); 
-loadSafeImage(window.GameData.images.player, imgPlayer, () => {
-    document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`;
-});
-
-const imgEnemy = new Image(); loadSafeImage(window.GameData.images.enemy, imgEnemy);
-const imgReaper = new Image(); loadSafeImage(window.GameData.images.reaper, imgReaper);
-const imgJumboGrime = new Image(); loadSafeImage(window.GameData.images.jumboGrime, imgJumboGrime);
-const imgGrabot = new Image(); loadSafeImage(window.GameData.images.grabot, imgGrabot);
-const imgGraspider = new Image(); loadSafeImage(window.GameData.images.graspider, imgGraspider);
-
+const imgEnemy = new Image();
+const imgReaper = new Image();
+const imgJumboGrime = new Image();
+const imgGrabot = new Image();
+const imgGraspider = new Image();
 let imgStairs = new Image(); 
 let imgHpPotion = new Image(); 
 let imgSpPotion = new Image(); 
 let imgStar = new Image();
-
-loadSafeImage(window.GameData.images.coin, imgStar, () => {
-    const uiIcon = document.getElementById('ui-star-icon');
-    if(uiIcon) {
-        uiIcon.src = imgStar.src;
-        uiIcon.style.display = 'inline-block';
-        const uiText = document.getElementById('ui-star-icon-text');
-        if(uiText) uiText.style.display = 'none';
-    }
-});
 
 function getPreloadedImage(key) {
     if (key === 'hpPotion') return imgHpPotion;
@@ -80,12 +80,13 @@ function getPreloadedImage(key) {
     return null;
 }
 
-// 透過処理も安全なデータからならブロックされません
-function processTransparentImageSafe(url, targetImg) {
-    loadSafeImage(url, targetImg, () => {
+function processTransparentImageSafe(base64Src, targetImg) {
+    if (!base64Src) return;
+    let img = new Image(); 
+    img.onload = () => {
         try {
-            let cvs = document.createElement('canvas'); cvs.width = targetImg.width; cvs.height = targetImg.height; 
-            let cCtx = cvs.getContext('2d'); cCtx.drawImage(targetImg, 0, 0);
+            let cvs = document.createElement('canvas'); cvs.width = img.width; cvs.height = img.height; 
+            let cCtx = cvs.getContext('2d'); cCtx.drawImage(img, 0, 0);
             let imgData = cCtx.getImageData(0, 0, cvs.width, cvs.height); let data = imgData.data; let stack = [];
             for(let x=0; x<cvs.width; x++) { stack.push(x, 0); stack.push(x, cvs.height-1); }
             for(let y=0; y<cvs.height; y++) { stack.push(0, y); stack.push(cvs.width-1, y); }
@@ -97,17 +98,58 @@ function processTransparentImageSafe(url, targetImg) {
             cCtx.putImageData(imgData, 0, 0); targetImg.src = cvs.toDataURL(); 
             if (window.gameState === 'playing' && document.getElementById('tab-item').style.display === 'grid') window.renderInventory();
         } catch(e) {
-            console.warn("透明化処理エラー(そのまま表示します):", e);
+            console.warn("透明化処理エラー:", e);
+            targetImg.src = base64Src;
         }
-    });
+    };
+    img.onerror = () => { targetImg.src = base64Src; };
+    img.src = base64Src;
 }
 
-// 背景が白い画像の透過処理を実行
-processTransparentImageSafe(window.GameData.images.stairs, imgStairs); 
-processTransparentImageSafe(window.GameData.images.hpPotion, imgHpPotion); 
-processTransparentImageSafe(window.GameData.images.spPotion, imgSpPotion);
-// ==========================================
+// === 全画像の読み込みとゲームループ開始 ===
+async function initImagesAndStart() {
+    // 10個のJSファイルを裏側で全部読み込む（index.htmlには書かなくてOK！）
+    let promises = imageScriptList.map(item => loadBase64ImageScript(item));
+    await Promise.all(promises);
 
+    // 読み込んだBASE64文字列を画像に流し込む
+    if(window.GameData.images.player) {
+        imgPlayer.src = window.GameData.images.player;
+        imgPlayer.onload = () => { document.getElementById('ui-icon').style.backgroundImage = `url(${imgPlayer.src})`; };
+    }
+    if(window.GameData.images.enemy) imgEnemy.src = window.GameData.images.enemy;
+    if(window.GameData.images.reaper) imgReaper.src = window.GameData.images.reaper;
+    if(window.GameData.images.jumboGrime) imgJumboGrime.src = window.GameData.images.jumboGrime;
+    if(window.GameData.images.grabot) imgGrabot.src = window.GameData.images.grabot;
+    if(window.GameData.images.graspider) imgGraspider.src = window.GameData.images.graspider;
+    
+    if(window.GameData.images.coin) {
+        imgStar.src = window.GameData.images.coin;
+        imgStar.onload = () => {
+            const uiIcon = document.getElementById('ui-star-icon');
+            if(uiIcon) {
+                uiIcon.src = imgStar.src;
+                uiIcon.style.display = 'inline-block';
+                const uiText = document.getElementById('ui-star-icon-text');
+                if(uiText) uiText.style.display = 'none';
+            }
+        };
+    }
+
+    // 透過処理
+    processTransparentImageSafe(window.GameData.images.stairs, imgStairs); 
+    processTransparentImageSafe(window.GameData.images.hpPotion, imgHpPotion); 
+    processTransparentImageSafe(window.GameData.images.spPotion, imgSpPotion);
+
+    // デバッグツールの初期化
+    if (typeof window.initDebugTools === 'function') {
+        window.initDebugTools();
+    }
+
+    // ゲームループ開始
+    requestAnimationFrame(gameLoop);
+}
+// ==========================================
 
 // --- UI・ボタン関連 ---
 document.getElementById('btn-sound').onclick = (e) => {
@@ -938,7 +980,7 @@ function render() {
             const sx = Math.floor((item.x - camX) * window.TILE_SIZE + window.TILE_SIZE/2);
             const sy = Math.floor((item.y - camY) * window.TILE_SIZE + window.TILE_SIZE/2);
             if (item.type === 'star') { 
-                if(imgStar.complete && imgStar.src && imgStar.src.startsWith('blob:')) {
+                if(imgStar.complete && imgStar.src && imgStar.src.startsWith('data:')) {
                     ctx.drawImage(imgStar, sx-window.TILE_SIZE*0.4, sy-window.TILE_SIZE*0.4, window.TILE_SIZE*0.8, window.TILE_SIZE*0.8);
                 } else {
                     ctx.fillStyle = '#ffff55'; ctx.beginPath(); ctx.arc(sx, sy, (window.TILE_SIZE*0.25) + Math.min(window.TILE_SIZE*0.1, item.amount), 0, Math.PI*2); ctx.fill(); 
@@ -1258,10 +1300,5 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// デバッグツールの初期化
-if (typeof window.initDebugTools === 'function') {
-    window.initDebugTools();
-}
-
-// ループ開始
-requestAnimationFrame(gameLoop);
+// 初期化を呼び出す
+initImagesAndStart();
