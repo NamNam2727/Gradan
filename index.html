@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GRAVITYと不思議なダンジョン</title>
+    <script src="https://cdn.gravity.place/fe/sdk/index-1.0.2.min.js"></script>
+    <script>
+        // エラーキャッチ用の簡易デバッガー
+        window.onerror = function(msg, source, lineno, colno, error) {
+            var errDiv = document.getElementById('debug-error-log');
+            if (!errDiv) {
+                errDiv = document.createElement('div');
+                errDiv.id = 'debug-error-log';
+                errDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:rgba(255,0,0,0.9); color:white; z-index:9999; padding:10px; font-size:12px; pointer-events:none; word-break:break-all; font-weight:bold;';
+                document.body.appendChild(errDiv);
+            }
+            var fileName = source ? source.split('/').pop() : '不明';
+            errDiv.innerHTML += 'エラー: ' + msg + '<br>[' + fileName + ' : ' + lineno + '行目]<br><hr>';
+            return false;
+        };
+
+        // ファイルの読み込み状況を監視するシステム
+        window.loadedScripts = 0;
+        window.totalScripts = 7; // 読み込むJSファイルの合計数
+        
+        function onScriptLoad() {
+            window.loadedScripts++;
+            if(window.loadedScripts >= window.totalScripts) {
+                var btn = document.getElementById('btn-start');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerText = 'START';
+                    btn.style.background = '#a8d578';
+                }
+            }
+        }
+        
+        function onScriptError(scriptName) {
+            var errDiv = document.getElementById('debug-error-log');
+            if (!errDiv) {
+                errDiv = document.createElement('div');
+                errDiv.id = 'debug-error-log';
+                errDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:rgba(255,0,0,0.9); color:white; z-index:9999; padding:10px; font-size:12px; pointer-events:auto; word-break:break-all; font-weight:bold;';
+                document.body.appendChild(errDiv);
+            }
+            errDiv.innerHTML += '【重大エラー】通信がブロックされました<br>「' + scriptName + '」の読み込みに失敗しました。<br>GRAVITYのセキュリティによりサーバーとの通信が遮断されています。<br><hr>';
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --ui-bg: rgba(0, 0, 0, 0.8);
+            --text-color: #fff;
+            --border-color: #444;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden; touch-action: none; user-select: none;
+        }
+        #game-container { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        canvas { display: block; image-rendering: pixelated; }
+        
+        #title-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 200; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #title-screen h1 { color: #fff; font-size: 28px; margin-bottom: 40px; text-shadow: 2px 2px 0 #555; text-align: center; }
+        
+        /* ボタンの初期状態をグレーにして無効化しておく */
+        #title-screen button { padding: 15px 40px; font-size: 20px; font-weight: bold; background: #555; border: 2px solid #fff; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #333; color: #111; }
+
+        #mode-screen, #room-list-screen, #lobby-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
+        .menu-btn { padding: 15px 30px; font-size: 18px; margin: 10px; font-weight: bold; background: #a8d578; border: 2px solid #fff; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #79553d; color: #111; }
+        .small-btn { padding: 8px 16px; background: #555; color: #fff; border: 1px solid #fff; border-radius: 5px; cursor: pointer; }
+
+        @keyframes flash { 0% { box-shadow: inset 0 0 0px rgba(255,0,0,0); } 50% { box-shadow: inset 0 0 80px rgba(255,0,0,0.8); } 100% { box-shadow: inset 0 0 0px rgba(255,0,0,0); } }
+        #red-flash { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50; animation: flash 1s infinite; display: none; }
+        
+        #floor-transition { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 150; display: none; justify-content: center; align-items: center; color: white; font-size: 32px; font-weight: bold; pointer-events: none; }
+
+        #top-ui { position: absolute; left: 10px; right: 10px; display: none; justify-content: space-between; align-items: flex-start; pointer-events: none; z-index: 10; }
+        .status-box { background: var(--ui-bg); padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; font-weight: bold; pointer-events: auto; text-align: right; }
+        
+        #ui-timer { position: absolute; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); border: 2px solid #fff; padding: 5px 15px; border-radius: 8px; font-size: 24px; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: auto; cursor: default; }
+
+        #left-bottom-ui { position: absolute; bottom: 20px; left: 10px; width: 65%; height: 140px; background: rgba(0,0,0,0.8); border: 1px solid #555; display: none; flex-direction: column; z-index: 20; border-radius: 5px; pointer-events: auto; }
+        #tab-headers { display: flex; border-bottom: 1px solid #555; background: #222; }
+        .tab-btn { flex: 1; background: transparent; color: #ccc; border: none; padding: 5px; font-size: 11px; cursor: pointer; border-right: 1px solid #555; }
+        .tab-btn:last-child { border-right: none; }
+        .tab-btn.active { background: #444; color: #fff; font-weight: bold; }
+        .tab-content { flex: 1; overflow-y: auto; padding: 5px; font-size: 12px; color: #fff; }
+        
+        #minimap-container { position: absolute; bottom: 20px; right: 10px; width: 120px; height: 120px; background: rgba(255,255,255,0.7); border: 2px solid #aaa; border-radius: 5px; z-index: 20; cursor: pointer; transition: all 0.2s ease; pointer-events: auto; display: none; }
+        #btn-close-minimap { display: none; position: absolute; bottom: 20px; right: 10px; width: 120px; height: 120px; background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 5px; color: #fff; text-align: center; line-height: 120px; font-weight: bold; cursor: pointer; z-index: 25; pointer-events: auto; }
+
+        #item-status-window { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #fff; padding: 20px; z-index: 110; color: white; border-radius: 10px; width: 260px; pointer-events: auto; max-height: 80vh; overflow-y: auto; }
+
+        #debug-item-menu { position: absolute; background: #333; border: 1px solid #fff; border-radius: 4px; display: none; flex-direction: column; z-index: 120; pointer-events: auto; max-height: 250px; overflow-y: auto; }
+        #debug-item-menu button { background: transparent; color: white; border: none; padding: 10px 16px; text-align: left; border-bottom: 1px solid #555; cursor: pointer; font-size: 14px; }
+        #debug-item-menu button:last-child { border-bottom: none; }
+        #debug-item-menu button:active { background: #555; }
+        
+        #btn-cancel-action { display:none; position:absolute; bottom:180px; left:50%; transform:translateX(-50%); padding:12px 24px; background:#ff4444; color:white; border:2px solid #fff; border-radius:8px; z-index:30; font-weight:bold; font-size:16px; pointer-events:auto; }
+
+        #status-window { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #fff; padding: 20px; z-index: 100; color: white; border-radius: 10px; width: 250px; pointer-events: auto; }
+
+        #enemy-status-window { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #fff; padding: 20px; z-index: 100; color: white; border-radius: 10px; width: 250px; max-height: 80vh; overflow-y: auto; pointer-events: auto; }
+        
+        .chat-bubble { position: absolute; left: 35px; top: -5px; background: #fff; color: #000; padding: 4px 8px; border-radius: 8px; font-size: 11px; white-space: nowrap; z-index: 50; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); pointer-events: none; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        #boss-hp-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 300px; display: none; flex-direction: column; gap: 5px; z-index: 10; pointer-events: none; }
+
+        .editable-stat { cursor: default; }
+        body.debug-mode .editable-stat { cursor: pointer; }
+        body.debug-mode .editable-stat:hover { color: #ffd700; text-shadow: 0 0 5px #ffd700; }
+        body.debug-mode .editable-stat.selected { color: #ffd700; text-shadow: 0 0 5px #ffd700; background: rgba(255,215,0,0.3); border-radius: 3px; }
+        
+        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; }
+        #game-over h1 { color: #ff4444; margin-bottom: 10px; }
+        #game-over button { margin-top: 20px; padding: 10px 20px; font-size: 18px; background: #444; color: white; border: 2px solid #888; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1170" height="1971"></canvas>
+        <div id="red-flash"></div>
+        <div id="floor-transition"></div>
+        <div id="boss-hp-container" style="top: 84px;"></div>
+        
+        <div id="title-screen">
+            <h1>GRAVITYと<br>不思議なダンジョン</h1>
+            <button id="btn-start" disabled>システム読込中...</button>
+        </div>
+
+        <div id="mode-screen">
+            <h1 style="margin-bottom:30px; font-size:24px;">プレイスタイル</h1>
+            <button id="btn-solo" class="menu-btn">ソロプレイ</button>
+            <button id="btn-multi" class="menu-btn">マルチプレイ</button>
+        </div>
+
+        <div id="room-list-screen">
+            <h2 style="margin-bottom:20px;">公開ルーム一覧</h2>
+            <div id="room-list-container" style="width:90%; max-width:400px; height:50%; background:#222; border:2px solid #555; border-radius:8px; overflow-y:auto; margin-bottom:20px; padding:10px;"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                <button id="btn-refresh" class="small-btn">更新</button>
+                <button id="btn-create-pub" class="small-btn" style="background:#a8d578; color:#000;">公開部屋作成</button>
+                <button id="btn-create-priv" class="small-btn" style="background:#a8d578; color:#000;">非公開部屋作成</button>
+                <button id="btn-back-mode" class="small-btn">戻る</button>
+            </div>
+        </div>
+
+        <div id="lobby-screen">
+            <h2 style="margin-bottom:20px;">待機ロビー</h2>
+            <div id="lobby-players-container" style="display:flex; flex-wrap:wrap; gap:15px; justify-content:center; margin-bottom:30px; width:90%;"></div>
+            <button id="btn-start-game" class="menu-btn" style="display:none;">ゲーム開始</button>
+            <div id="lobby-status-text" style="font-size:18px;">メンバーを待っています...</div>
+        </div>
+
+        <div id="top-ui" style="top: 84px;">
+            <div id="ui-status-area" style="display:flex; flex-direction:column; align-items:flex-start; pointer-events:auto;">
+                <div id="ui-username" style="font-size:14px; font-weight:bold; color:#fff; text-shadow:1px 1px 0 #000; margin-bottom:2px; cursor:pointer;" onclick="if(window.selectTargetIcon) window.selectTargetIcon(window.Network ? window.Network.myId : null)">プレイヤー</div>
+                <div style="display:flex; align-items:center; cursor:pointer;" onclick="if(window.selectTargetIcon) window.selectTargetIcon(window.Network ? window.Network.myId : null)">
+                    <div style="position:relative;">
+                        <div id="ui-icon" style="width: 30px; height: 30px; background-color: rgb(68, 68, 68); background-size: cover; background-position: center center; border-radius: 50%; margin-right: 5px; border: 2px solid rgb(255, 255, 255);"></div>
+                        <div id="my-chat-bubble" class="chat-bubble" style="display:none;"></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; width:120px;">
+                        <div style="width:100%; height:12px; background:#333; border:1px solid #fff; position:relative; border-radius:6px; overflow:hidden; margin-bottom:2px;">
+                            <div id="ui-hp-bar" style="width:100%; height:100%; background:linear-gradient(90deg, #ff0000, #ff5555);"></div>
+                            <div id="ui-hp-text" style="position:absolute; top:0; left:0; width:100%; line-height:12px; text-align:center; font-size:9px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px #000;">100/100</div>
+                        </div>
+                        <div style="width:100%; height:8px; background:#333; border:1px solid #fff; position:relative; border-radius:4px; overflow:hidden;">
+                            <div id="ui-sp-bar" style="width:100%; height:100%; background:linear-gradient(90deg, #0055ff, #55aaff);"></div>
+                            <div id="ui-sp-text" style="position:absolute; top:0; left:0; width:100%; line-height:8px; text-align:center; font-size:8px; color:#fff; font-weight:bold; text-shadow:1px 1px 1px #000;">20/20</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="party-list" style="margin-top: 10px; display:flex; flex-direction:column; gap:5px; width:100%;"></div>
+            </div>
+            
+            <div id="ui-timer"><span id="ui-timer-text">100</span></div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px; pointer-events:auto;">
+                <button id="btn-sound" style="background:var(--ui-bg); border:1px solid #fff; color:#fff; border-radius:5px; padding:4px 8px; cursor:pointer; font-size:12px;">🔊 ON</button>
+                <div style="display:flex; gap:5px; flex-direction:column;">
+                    <div class="status-box">F: <span id="ui-floor" class="editable-stat" onclick="if(window.editFloor) editFloor('ui-floor')">1</span><br><span id="ui-star-icon-text" style="display: none;">⭐</span><img id="ui-star-icon" style="width: 14px; height: 14px; vertical-align: middle; display: inline-block; margin-right: 2px; object-fit: contain;">: <span id="ui-stars" class="editable-stat" onclick="if(window.editStars) editStars('ui-stars')">0</span></div>
+                    <div class="status-box" id="ui-key-container" style="font-size:12px; cursor:pointer;">🔑 <span id="ui-key-status" style="color:gray;">未取得</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="left-bottom-ui">
+            <div id="tab-headers">
+                <button class="tab-btn active" onclick="if(window.switchTab) window.switchTab('log')">ログ</button>
+                <button class="tab-btn" onclick="if(window.switchTab) window.switchTab('item')">アイテム</button>
+                <button class="tab-btn" onclick="if(window.switchTab) window.switchTab('skill')">スキル</button>
+                <button class="tab-btn" onclick="if(window.switchTab) window.switchTab('chat')">チャット</button>
+            </div>
+            <div id="tab-log" class="tab-content" style="display:flex; flex-direction:column; justify-content:flex-end;"></div>
+            <div id="tab-item" class="tab-content" style="display:none; grid-template-columns:repeat(auto-fill, 36px); gap:4px; align-content:start;"></div>
+            <div id="tab-skill" class="tab-content" style="display:none; flex-direction:column; gap:8px; padding: 10px;">
+                <button onclick="if(window.activateSkill) window.activateSkill('heal')" style="padding:10px; background:#4CAF50; color:#fff; border:1px solid #fff; border-radius:5px; font-weight:bold; cursor:pointer;">ヒール (SP: 5)</button>
+                <button onclick="if(window.activateSkill) window.activateSkill('strong_attack')" style="padding:10px; background:#F44336; color:#fff; border:1px solid #fff; border-radius:5px; font-weight:bold; cursor:pointer;">強攻撃 (SP: 5)</button>
+            </div>
+            <div id="tab-chat" class="tab-content" style="display:none; flex-direction:column;">
+                <div id="chat-history" style="flex:1; overflow-y:auto; margin-bottom:5px;"></div>
+                <div style="display:flex; margin-top:auto;">
+                    <input type="text" id="chat-input" style="flex:1; background:#222; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; padding:2px 5px;" placeholder="メッセージを入力...">
+                    <button onclick="if(window.sendChat) window.sendChat()" style="background:#444; color:#fff; border:1px solid #555; margin-left:5px; border-radius:3px; padding:0 8px;">送信</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="minimap-container">
+            <canvas id="minimapCanvas" width="300" height="300" style="width:100%; height:100%; image-rendering:pixelated;"></canvas>
+            <div id="minimap-hint" style="position:absolute; bottom:5px; width:100%; text-align:center; color:white; font-size:12px; text-shadow:1px 1px 2px black; display:none; pointer-events:none;">タップで目的地に移動</div>
+        </div>
+        <div id="btn-close-minimap" onclick="if(window.shrinkMinimap) window.shrinkMinimap()">マップを戻す</div>
+        
+        <div id="item-status-window">
+            <h3 id="ist-name" style="margin-top:0; border-bottom:1px solid #555; padding-bottom:5px; color:#a8d578;"></h3>
+            <div id="ist-icon-container" style="text-align:center; margin:10px 0; font-size:32px;"></div>
+            <p id="ist-effect" style="margin:10px 0; font-size:14px; font-weight:bold; color:#ffeb3b;"></p>
+            <p id="ist-flavor" style="margin:10px 0; font-size:12px; color:#ccc; line-height:1.4;"></p>
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                <button id="btn-ist-action1" style="flex:1; margin-right:5px; padding:10px 5px; background:#4CAF50; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; font-weight:bold;">使う</button>
+                <button id="btn-ist-throw" style="flex:1; margin-right:5px; margin-left:5px; padding:10px 5px; background:#FF9800; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; font-weight:bold;">投げる</button>
+                <button id="btn-ist-drop" style="flex:1; margin-left:5px; padding:10px 5px; background:#9E9E9E; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; font-weight:bold;">置く</button>
+            </div>
+            <button onclick="document.getElementById('item-status-window').style.display='none'" style="margin-top:15px; padding:10px 15px; background:#444; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; width:100%; font-weight:bold;">閉じる</button>
+        </div>
+
+        <div id="debug-item-menu">
+            <!-- Dynamically populated -->
+        </div>
+
+        <button id="btn-cancel-action">キャンセル</button>
+
+        <div id="status-window">
+            <h3 id="st-username" style="margin-top:0; border-bottom:1px solid #555; padding-bottom:5px; color:#a8d578;">プレイヤー</h3>
+            <h4 style="margin-top:0; margin-bottom:5px;">ステータス (Lv.<span id="st-lvl" class="editable-stat" onclick="if(window.editStat) editStat('LEVEL', 'st-lvl')"></span>)</h4>
+            <p style="font-size:12px; color:#aaa; margin-top:0; margin-bottom:10px;">EXP: <span id="st-exp"></span> / 次のLvまで: <span id="st-nextexp"></span></p>
+            <p>HP: <span id="st-hp" class="editable-stat" onclick="if(window.editStat) editStat('HP', 'st-hp')"></span> / <span id="st-maxhp" class="editable-stat" onclick="if(window.editStat) editStat('MAX_HP', 'st-maxhp')"></span></p>
+            <p>SP: <span id="st-sp" class="editable-stat" onclick="if(window.editStat) editStat('SP', 'st-sp')"></span> / <span id="st-maxsp" class="editable-stat" onclick="if(window.editStat) editStat('MAX_SP', 'st-maxsp')"></span></p>
+            <p>攻撃力: <span id="st-atk" class="editable-stat" onclick="if(window.editStat) editStat('ATK', 'st-atk')"></span></p>
+            <p>防御力: <span id="st-def" class="editable-stat" onclick="if(window.editStat) editStat('DEF', 'st-def')"></span></p>
+            <div id="st-equip-section">
+                <h4 style="margin-top:10px; margin-bottom:5px; border-bottom:1px solid #555;">装備</h4>
+                <p style="margin:5px 0;">武器: <span id="st-weap">なし</span></p>
+                <p style="margin:5px 0;">防具: <span id="st-arm">なし</span></p>
+                <p style="margin:5px 0;">装飾: <span id="st-acc">なし</span></p>
+            </div>
+            <button onclick="document.getElementById('status-window').style.display='none'" style="margin-top:15px; padding:5px 15px; background:#444; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; width:100%;">閉じる</button>
+        </div>
+
+        <div id="enemy-status-window">
+            <h3 id="est-name" style="margin-top:0; border-bottom:1px solid #555; padding-bottom:5px; color:#ff4444;"></h3>
+            <div id="est-content"></div>
+            <button onclick="document.getElementById('enemy-status-window').style.display='none'" style="margin-top:15px; padding:5px 15px; background:#444; color:#fff; border:1px solid #fff; border-radius:5px; cursor:pointer; width:100%;">閉じる</button>
+        </div>
+        
+        <div id="game-over">
+            <h1>GAME OVER</h1>
+            <p>到達階層: <span id="go-floor">1</span></p>
+            <button id="btn-return-title">タイトルに戻る</button>
+        </div>
+    </div>
+
+    <!-- ファイルの読み込み成功・失敗を判定する処理を追加しています -->
+    <script src="https://nam27.uunyan.com/Gradan/core_data.js?v=4" onload="onScriptLoad()" onerror="onScriptError('core_data.js')"></script>
+    <script src="https://nam27.uunyan.com/Gradan/core_logic.js?v=4" onload="onScriptLoad()" onerror="onScriptError('core_logic.js')"></script>
+    
+    <script src="https://nam27.uunyan.com/Gradan/bgm/audio_engine.js?v=4" onload="onScriptLoad()" onerror="onScriptError('audio_engine.js')"></script>
+    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_title.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_title.js')"></script>
+    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_dungeon.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_dungeon.js')"></script>
+    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_mansion.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_mansion.js')"></script>
+    <script src="https://nam27.uunyan.com/Gradan/bgm/bgm_boss.js?v=4" onload="onScriptLoad()" onerror="onScriptError('bgm_boss.js')"></script>
+
+    <script src="https://nam27.uunyan.com/Gradan/main.js?v=4" onload="onScriptLoad()" onerror="onScriptError('main.js')"></script>
+
+</body>
+</html>
